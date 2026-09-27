@@ -55,7 +55,9 @@
   }
   .wheel-area { display: flex; flex-direction: column; align-items: center; gap: 18px; }
   .wheel-wrap { position: relative; width: min(560px, 92vw); aspect-ratio: 1; }
-  canvas { width: 100%; height: 100%; display: block; filter: drop-shadow(0 10px 24px rgba(15,39,68,.18)); }
+  canvas { width: 100%; height: 100%; display: block; }
+  .wheel-wrap::before { content: ''; position: absolute; inset: 4px; border-radius: 50%; box-shadow: 0 10px 28px rgba(15,39,68,.22); }
+  #wheel { position: relative; will-change: transform; pointer-events: none; }
   .pointer {
     position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
     width: 0; height: 0;
@@ -134,9 +136,43 @@
   .card .sub { color: var(--muted); margin: 0 0 26px; font-size: 16px; }
   #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 11; }
   footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: center; }
+  /* Passcode screen */
+  .lock {
+    position: fixed; inset: 0; z-index: 50; background: var(--bg);
+    display: flex; align-items: center; justify-content: center; padding: 16px;
+  }
+  .lock.hidden { display: none; }
+  .lock form {
+    background: #fff; border: 1px solid var(--border); border-top: 6px solid var(--teal);
+    border-radius: 16px; padding: 36px 32px; width: min(400px, 100%); text-align: center;
+    box-shadow: 0 16px 40px rgba(15,39,68,.12);
+  }
+  .lock h2 { font-family: 'Playfair Display', serif; color: var(--navy); font-size: 28px; margin: 6px 0 8px; }
+  .lock p { color: var(--muted); font-size: 14px; margin: 0 0 20px; }
+  .lock p.eyebrow { color: var(--teal); font-size: 11px; margin: 0; }
+  .lock input {
+    width: 100%; font: inherit; font-size: 16px; padding: 12px 14px; border-radius: 8px;
+    border: 1px solid var(--border); background: #f9fafc; color: var(--text); text-align: center; letter-spacing: 1px;
+  }
+  .lock input:focus { outline: 2px solid rgba(29,79,145,.25); border-color: var(--accent); }
+  .lock .spin-btn { width: 100%; margin-top: 14px; }
+  .lock .err { color: #b42318; font-size: 14px; min-height: 20px; margin: 10px 0 0; }
+  .shake { animation: shake .35s; }
+  @keyframes shake { 20%,60% { transform: translateX(-8px); } 40%,80% { transform: translateX(8px); } }
 </style>
 </head>
 <body>
+
+<div class="lock" id="lock">
+  <form id="lockForm" autocomplete="off">
+    <p class="eyebrow">Corporate Finance · End-of-Class Draw</p>
+    <h2>The Wolf of the Class</h2>
+    <p>Enter the passcode to open the draw.</p>
+    <input type="password" id="lockInput" placeholder="Passcode" aria-label="Passcode" autofocus>
+    <button type="submit" class="spin-btn">Unlock</button>
+    <p class="err" id="lockErr"></p>
+  </form>
+</div>
 
 <header>
   <p class="eyebrow">Corporate Finance · End-of-Class Draw</p>
@@ -191,6 +227,12 @@
 <footer>Names are stored only in this browser. Nothing is uploaded anywhere.</footer>
 
 <script>
+/* =========================================================
+   PASSCODE: change the text between the quotes to set your own.
+   Keep the quote marks. Example: const PASSCODE = 'myNewCode';
+   ========================================================= */
+const PASSCODE = 'finance2026';
+
 (() => {
   const PALETTE = ['#0f2744', '#d7e2ef', '#1d4f91', '#eef2f7', '#0e7c7b', '#d7e2ef', '#35608f', '#eef2f7'];
   const LIGHT_SEGMENTS = new Set(['#d7e2ef', '#eef2f7']);
@@ -235,82 +277,85 @@
     draw();
   }
 
-  function fitText(text, maxWidth, fontSize) {
-    ctx.font = `600 ${fontSize}px Inter, sans-serif`;
-    if (ctx.measureText(text).width <= maxWidth) return text;
-    let t = text;
-    while (t.length > 1 && ctx.measureText(t + '…').width > maxWidth) t = t.slice(0, -1);
-    return t + '…';
-  }
+  // The wheel is painted once into an offscreen canvas and then only rotated
+  // each frame, so spinning stays smooth even with a long class list.
+  let wheelCache = null, wheelKey = '';
 
-  function draw() {
-    const size = canvas.clientWidth;
-    const c = size / 2;
-    const r = c - 8;
-    const names = getNames();
-    ctx.clearRect(0, 0, size, size);
+  function buildWheel(size, dpr, names) {
+    const off = document.createElement('canvas');
+    off.width = Math.round(size * dpr); off.height = Math.round(size * dpr);
+    const o = off.getContext('2d');
+    o.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const c = size / 2, r = c - 8, n = names.length, seg = TAU / n;
 
-    // outer ring
-    ctx.beginPath();
-    ctx.arc(c, c, r + 4, 0, TAU);
-    ctx.fillStyle = '#0f2744';
-    ctx.fill();
+    o.beginPath(); o.arc(c, c, r + 4, 0, TAU); o.fillStyle = '#0f2744'; o.fill();
 
-    if (names.length === 0) {
-      ctx.beginPath();
-      ctx.arc(c, c, r, 0, TAU);
-      ctx.fillStyle = '#eef2f7';
-      ctx.fill();
-      ctx.fillStyle = '#5b6b80';
-      ctx.font = `600 ${Math.max(14, size / 28)}px Inter, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.fillText('Add student names to begin →', c, c + size * 0.18);
-      return;
-    }
-
-    const n = names.length;
-    const seg = TAU / n;
-    // palette length must not divide cleanly into wraparound clash
     const colors = names.map((_, i) => {
       let col = PALETTE[i % PALETTE.length];
       if (i === n - 1 && n > 1 && (n - 1) % PALETTE.length === 0) col = PALETTE[2];
       return col;
     });
-
     const fontSize = Math.max(10, Math.min(22, (size / 22) * Math.min(1, 14 / n + 0.35)));
+    o.font = `600 ${fontSize}px Inter, sans-serif`;
+    const fit = (text, maxW) => {
+      if (o.measureText(text).width <= maxW) return text;
+      let t = text;
+      while (t.length > 1 && o.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+      return t + '…';
+    };
 
     for (let i = 0; i < n; i++) {
-      const start = rotation + i * seg;
-      ctx.beginPath();
-      ctx.moveTo(c, c);
-      ctx.arc(c, c, r, start, start + seg);
-      ctx.closePath();
-      ctx.fillStyle = colors[i];
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(15,39,68,.25)';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-
-      ctx.save();
-      ctx.translate(c, c);
-      ctx.rotate(start + seg / 2);
-      ctx.textAlign = 'right';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = LIGHT_SEGMENTS.has(colors[i]) ? '#0f2744' : '#ffffff';
-      const label = fitText(names[i], r * 0.68, fontSize);
-      ctx.fillText(label, r - 14, 0);
-      ctx.restore();
+      const start = i * seg;
+      o.beginPath(); o.moveTo(c, c); o.arc(c, c, r, start, start + seg); o.closePath();
+      o.fillStyle = colors[i]; o.fill();
+      o.strokeStyle = 'rgba(15,39,68,.25)'; o.lineWidth = 1.5; o.stroke();
+      o.save();
+      o.translate(c, c); o.rotate(start + seg / 2);
+      o.textAlign = 'right'; o.textBaseline = 'middle';
+      o.fillStyle = LIGHT_SEGMENTS.has(colors[i]) ? '#0f2744' : '#ffffff';
+      o.fillText(fit(names[i], r * 0.68), r - 14, 0);
+      o.restore();
     }
-
-    // pegs
-    for (let i = 0; i < n && n <= 60; i++) {
-      const a = rotation + i * seg;
-      ctx.beginPath();
-      ctx.arc(c + Math.cos(a) * (r - 3), c + Math.sin(a) * (r - 3), 3, 0, TAU);
-      ctx.fillStyle = '#ffffff';
-      ctx.fill();
+    if (n <= 60) {
+      o.fillStyle = '#ffffff';
+      for (let i = 0; i < n; i++) {
+        const a = i * seg;
+        o.beginPath(); o.arc(c + Math.cos(a) * (r - 3), c + Math.sin(a) * (r - 3), 3, 0, TAU); o.fill();
+      }
     }
+    return off;
   }
+
+  function invalidateWheel() { wheelKey = ''; }
+
+  function draw() {
+    const size = canvas.clientWidth;
+    const dpr = window.devicePixelRatio || 1;
+    const c = size / 2, r = c - 8;
+    const names = getNames();
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, size, size);
+
+    if (names.length === 0) {
+      ctx.beginPath(); ctx.arc(c, c, r + 4, 0, TAU); ctx.fillStyle = '#0f2744'; ctx.fill();
+      ctx.beginPath(); ctx.arc(c, c, r, 0, TAU); ctx.fillStyle = '#eef2f7'; ctx.fill();
+      ctx.fillStyle = '#5b6b80';
+      ctx.font = `600 ${Math.max(14, size / 28)}px Inter, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('Add student names to begin →', c, c + size * 0.18);
+      canvas.style.transform = '';
+      return;
+    }
+
+    const key = size + '|' + dpr + '|' + names.join('\n');
+    if (key !== wheelKey || !wheelCache) { wheelCache = buildWheel(size, dpr, names); wheelKey = key; }
+
+    ctx.drawImage(wheelCache, 0, 0, size, size);
+    applyRotation();
+  }
+
+  // Spinning just rotates the finished picture with CSS (done by the graphics card).
+  function applyRotation() { canvas.style.transform = `rotate(${rotation}rad)`; }
 
   // ---------- sound ----------
   let audioCtx = null;
@@ -389,7 +434,7 @@
 
   function spin() {
     const names = getNames();
-    if (spinning) return;
+    if (spinning || locked) return;
     if (names.length < 2) {
       alert('Add at least two names to spin the wheel.');
       return;
@@ -419,7 +464,7 @@
       const p = Math.min(1, (now - t0) / duration);
       const eased = 1 - Math.pow(1 - p, 4);
       rotation = startRot + delta * eased;
-      draw();
+      applyRotation();
       const cur = indexAtPointer(n);
       if (cur !== lastIdx) { tick(); lastIdx = cur; }
       if (p < 1) requestAnimationFrame(frame);
@@ -430,6 +475,7 @@
 
   function finish(name) {
     rotation = ((rotation % TAU) + TAU) % TAU;
+    applyRotation();
     pendingWinner = name;
     winners.unshift({ name, when: new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) });
     store.set(STORE_WINNERS, JSON.stringify(winners));
@@ -545,7 +591,7 @@
   });
 
   document.addEventListener('keydown', e => {
-    if (document.activeElement === namesEl) return;
+    if (locked || document.activeElement === namesEl) return;
     if (e.code === 'Space') {
       e.preventDefault();
       if (overlay.classList.contains('show')) closeWinner(); else spin();
@@ -559,6 +605,28 @@
 
   window.addEventListener('resize', resize);
 
+  // ---------- passcode ----------
+  const lockEl = document.getElementById('lock');
+  const lockForm = document.getElementById('lockForm');
+  const lockInput = document.getElementById('lockInput');
+  const lockErr = document.getElementById('lockErr');
+  let locked = true;
+  function unlock() {
+    locked = false;
+    lockEl.classList.add('hidden');
+    try { sessionStorage.setItem('wolfOfClass.unlocked', '1'); } catch {}
+    resize();
+  }
+  lockForm.addEventListener('submit', e => {
+    e.preventDefault();
+    if (lockInput.value.trim() === PASSCODE) { unlock(); return; }
+    lockErr.textContent = 'Incorrect passcode. Please try again.';
+    lockForm.classList.remove('shake'); void lockForm.offsetWidth; lockForm.classList.add('shake');
+    lockInput.select();
+  });
+  try { if (sessionStorage.getItem('wolfOfClass.unlocked') === '1') unlock(); } catch {}
+  if (locked) lockInput.focus();
+
   // ---------- init ----------
   const savedNames = store.get(STORE_NAMES);
   namesEl.value = savedNames !== null ? savedNames :
@@ -567,7 +635,7 @@
   renderWinners();
   onNamesChange();
   resize();
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { invalidateWheel(); draw(); });
 })();
 </script>
 </body>
