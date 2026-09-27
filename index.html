@@ -134,9 +134,43 @@
   .card .sub { color: var(--muted); margin: 0 0 26px; font-size: 16px; }
   #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 11; }
   footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: center; }
+  /* Passcode screen */
+  .lock {
+    position: fixed; inset: 0; z-index: 50; background: var(--bg);
+    display: flex; align-items: center; justify-content: center; padding: 16px;
+  }
+  .lock.hidden { display: none; }
+  .lock form {
+    background: #fff; border: 1px solid var(--border); border-top: 6px solid var(--teal);
+    border-radius: 16px; padding: 36px 32px; width: min(400px, 100%); text-align: center;
+    box-shadow: 0 16px 40px rgba(15,39,68,.12);
+  }
+  .lock h2 { font-family: 'Playfair Display', serif; color: var(--navy); font-size: 28px; margin: 6px 0 8px; }
+  .lock p { color: var(--muted); font-size: 14px; margin: 0 0 20px; }
+  .lock p.eyebrow { color: var(--teal); font-size: 11px; margin: 0; }
+  .lock input {
+    width: 100%; font: inherit; font-size: 16px; padding: 12px 14px; border-radius: 8px;
+    border: 1px solid var(--border); background: #f9fafc; color: var(--text); text-align: center; letter-spacing: 1px;
+  }
+  .lock input:focus { outline: 2px solid rgba(29,79,145,.25); border-color: var(--accent); }
+  .lock .spin-btn { width: 100%; margin-top: 14px; }
+  .lock .err { color: #b42318; font-size: 14px; min-height: 20px; margin: 10px 0 0; }
+  .shake { animation: shake .35s; }
+  @keyframes shake { 20%,60% { transform: translateX(-8px); } 40%,80% { transform: translateX(8px); } }
 </style>
 </head>
 <body>
+
+<div class="lock" id="lock">
+  <form id="lockForm" autocomplete="off">
+    <p class="eyebrow">Corporate Finance · End-of-Class Draw</p>
+    <h2>The Wolf of the Class</h2>
+    <p>Enter the passcode to open the draw.</p>
+    <input type="password" id="lockInput" placeholder="Passcode" aria-label="Passcode" autofocus>
+    <button type="submit" class="spin-btn">Unlock</button>
+    <p class="err" id="lockErr"></p>
+  </form>
+</div>
 
 <header>
   <p class="eyebrow">Corporate Finance · End-of-Class Draw</p>
@@ -191,6 +225,12 @@
 <footer>Names are stored only in this browser. Nothing is uploaded anywhere.</footer>
 
 <script>
+/* =========================================================
+   PASSCODE: change the text between the quotes to set your own.
+   Keep the quote marks. Example: const PASSCODE = 'myNewCode';
+   ========================================================= */
+const PASSCODE = 'finance2026';
+
 (() => {
   const PALETTE = ['#0f2744', '#d7e2ef', '#1d4f91', '#eef2f7', '#0e7c7b', '#d7e2ef', '#35608f', '#eef2f7'];
   const LIGHT_SEGMENTS = new Set(['#d7e2ef', '#eef2f7']);
@@ -389,7 +429,7 @@
 
   function spin() {
     const names = getNames();
-    if (spinning) return;
+    if (spinning || locked) return;
     if (names.length < 2) {
       alert('Add at least two names to spin the wheel.');
       return;
@@ -545,7 +585,7 @@
   });
 
   document.addEventListener('keydown', e => {
-    if (document.activeElement === namesEl) return;
+    if (locked || document.activeElement === namesEl) return;
     if (e.code === 'Space') {
       e.preventDefault();
       if (overlay.classList.contains('show')) closeWinner(); else spin();
@@ -558,6 +598,28 @@
   });
 
   window.addEventListener('resize', resize);
+
+  // ---------- passcode ----------
+  const lockEl = document.getElementById('lock');
+  const lockForm = document.getElementById('lockForm');
+  const lockInput = document.getElementById('lockInput');
+  const lockErr = document.getElementById('lockErr');
+  let locked = true;
+  function unlock() {
+    locked = false;
+    lockEl.classList.add('hidden');
+    try { sessionStorage.setItem('wolfOfClass.unlocked', '1'); } catch {}
+    resize();
+  }
+  lockForm.addEventListener('submit', e => {
+    e.preventDefault();
+    if (lockInput.value.trim() === PASSCODE) { unlock(); return; }
+    lockErr.textContent = 'Incorrect passcode. Please try again.';
+    lockForm.classList.remove('shake'); void lockForm.offsetWidth; lockForm.classList.add('shake');
+    lockInput.select();
+  });
+  try { if (sessionStorage.getItem('wolfOfClass.unlocked') === '1') unlock(); } catch {}
+  if (locked) lockInput.focus();
 
   // ---------- init ----------
   const savedNames = store.get(STORE_NAMES);
