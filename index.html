@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Wolf of the Class</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e1726;
+    --bg2: #16233a;
+    --panel: #1b2a44;
+    --gold: #d4a84b;
+    --gold-light: #f0cf7e;
+    --text: #eef2f8;
+    --muted: #9aa8c0;
+    --border: #2c3f60;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--text);
+    background: radial-gradient(ellipse at top, var(--bg2), var(--bg) 70%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 40px;
+  }
+  header { text-align: center; margin-bottom: 16px; }
+  header .wolf { font-size: 44px; line-height: 1; }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-weight: 900;
+    font-size: clamp(30px, 6vw, 56px);
+    margin: 6px 0 4px;
+    background: linear-gradient(180deg, var(--gold-light), var(--gold));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: 0.5px;
+  }
+  header p { margin: 0; color: var(--muted); font-size: 15px; }
+
+  main {
+    display: flex;
+    gap: 28px;
+    align-items: flex-start;
+    justify-content: center;
+    flex-wrap: wrap;
+    width: 100%;
+    max-width: 1150px;
+  }
+  .wheel-area { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+  .wheel-wrap { position: relative; width: min(560px, 92vw); aspect-ratio: 1; }
+  canvas { width: 100%; height: 100%; display: block; filter: drop-shadow(0 12px 30px rgba(0,0,0,.5)); }
+  .pointer {
+    position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 20px solid transparent; border-right: 20px solid transparent;
+    border-top: 38px solid var(--gold-light);
+    filter: drop-shadow(0 3px 4px rgba(0,0,0,.6));
+    z-index: 2;
+  }
+  .hub {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 18%; aspect-ratio: 1; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #2a3d5f, #0e1726);
+    border: 4px solid var(--gold);
+    display: flex; align-items: center; justify-content: center;
+    font-size: clamp(26px, 5vw, 46px);
+    box-shadow: 0 4px 14px rgba(0,0,0,.6);
+    cursor: pointer; user-select: none;
+  }
+  button {
+    font-family: inherit; cursor: pointer; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--panel); color: var(--text); padding: 9px 14px; font-size: 14px;
+  }
+  button:hover:not(:disabled) { border-color: var(--gold); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .spin-btn {
+    font-family: 'Playfair Display', serif; font-weight: 700; font-size: 24px;
+    padding: 14px 48px; border: none; color: #1a1305;
+    background: linear-gradient(180deg, var(--gold-light), var(--gold));
+    box-shadow: 0 6px 20px rgba(212,168,75,.35);
+  }
+  .hint { color: var(--muted); font-size: 13px; margin: 0; }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+    padding: 18px; width: min(340px, 92vw);
+  }
+  .panel h2 { font-size: 16px; margin: 0 0 8px; color: var(--gold-light); }
+  .panel + .panel { margin-top: 16px; }
+  textarea {
+    width: 100%; height: 220px; resize: vertical; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text);
+    padding: 10px; font-family: inherit; font-size: 14px; line-height: 1.5;
+  }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
+  .count { color: var(--muted); font-size: 13px; margin-left: auto; }
+  label.check { display: flex; gap: 8px; align-items: center; font-size: 14px; margin-top: 10px; color: var(--muted); }
+  ol.winners { margin: 0; padding-left: 20px; font-size: 14px; max-height: 180px; overflow-y: auto; }
+  ol.winners li { padding: 3px 0; }
+  ol.winners li span { color: var(--muted); font-size: 12px; margin-left: 6px; }
+  .empty { color: var(--muted); font-size: 14px; margin: 0; }
+
+  /* Winner overlay */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(5,10,20,.82);
+    display: none; align-items: center; justify-content: center; z-index: 10; padding: 16px;
+  }
+  .overlay.show { display: flex; }
+  .card {
+    text-align: center; background: linear-gradient(180deg, #1f3050, #121d31);
+    border: 2px solid var(--gold); border-radius: 20px; padding: 36px 32px;
+    max-width: 560px; width: 100%; animation: pop .45s cubic-bezier(.2,1.4,.4,1);
+    position: relative; z-index: 12;
+  }
+  @keyframes pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .card .big { font-size: 64px; }
+  .card .label { color: var(--muted); text-transform: uppercase; letter-spacing: 3px; font-size: 13px; margin-top: 8px; }
+  .card .name {
+    font-family: 'Playfair Display', serif; font-weight: 900;
+    font-size: clamp(32px, 8vw, 60px); color: var(--gold-light); margin: 10px 0 6px; word-break: break-word;
+  }
+  .card .sub { color: var(--text); margin: 0 0 22px; }
+  #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 11; }
+  footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: center; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wolf" aria-hidden="true">🐺</div>
+  <h1>The Wolf of the Class</h1>
+  <p>Stayed until the end? You're in the pack. One lucky wolf takes home the prize.</p>
+</header>
+
+<main>
+  <section class="wheel-area">
+    <div class="wheel-wrap">
+      <div class="pointer"></div>
+      <canvas id="wheel"></canvas>
+      <div class="hub" id="hub" title="Spin">🐺</div>
+    </div>
+    <button class="spin-btn" id="spinBtn">Spin</button>
+    <p class="hint">Press <strong>Space</strong> to spin · <strong>F</strong> for full screen</p>
+  </section>
+
+  <aside>
+    <div class="panel">
+      <h2>Tonight's pack</h2>
+      <textarea id="names" spellcheck="false" placeholder="Paste student names here, one per line"></textarea>
+      <div class="row">
+        <button id="shuffleBtn">Shuffle</button>
+        <button id="clearBtn">Clear</button>
+        <span class="count" id="count">0 wolves</span>
+      </div>
+      <label class="check"><input type="checkbox" id="removeWinner" checked> Remove winner from the wheel after each spin</label>
+      <label class="check"><input type="checkbox" id="sound" checked> Sound</label>
+    </div>
+
+    <div class="panel">
+      <h2>Hall of Wolves</h2>
+      <div id="winnersBox"><p class="empty">No winners yet.</p></div>
+      <div class="row">
+        <button id="clearWinnersBtn">Clear history</button>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<div class="overlay" id="overlay">
+  <div class="card">
+    <div class="big">🐺</div>
+    <div class="label">Tonight's Wolf of the Class</div>
+    <div class="name" id="winnerName"></div>
+    <p class="sub">Commitment pays off. Come collect your prize!</p>
+    <button class="spin-btn" id="closeBtn">Awooo! 🎉</button>
+  </div>
+</div>
+<canvas id="confetti"></canvas>
+
+<footer>Names are stored only in this browser. Nothing is uploaded anywhere.</footer>
+
+<script>
+(() => {
+  const PALETTE = ['#1f3a63', '#d4a84b', '#2f4f7f', '#b98a2e', '#27446f', '#e2bd66', '#3a5a8c', '#c7983c'];
+  const LIGHT_SEGMENTS = new Set(['#d4a84b', '#b98a2e', '#e2bd66', '#c7983c']);
+  const STORE_NAMES = 'wolfOfClass.names';
+  const STORE_WINNERS = 'wolfOfClass.winners';
+  const TAU = Math.PI * 2;
+
+  const canvas = document.getElementById('wheel');
+  const ctx = canvas.getContext('2d');
+  const namesEl = document.getElementById('names');
+  const countEl = document.getElementById('count');
+  const spinBtn = document.getElementById('spinBtn');
+  const hub = document.getElementById('hub');
+  const overlay = document.getElementById('overlay');
+  const winnerNameEl = document.getElementById('winnerName');
+  const removeWinnerEl = document.getElementById('removeWinner');
+  const soundEl = document.getElementById('sound');
+  const winnersBox = document.getElementById('winnersBox');
+
+  let rotation = 0;
+  let spinning = false;
+  let pendingWinner = null;
+  let winners = [];
+
+  // ---------- storage (safe) ----------
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch {} }
+  };
+
+  function getNames() {
+    return namesEl.value.split('\n').map(s => s.trim()).filter(Boolean);
+  }
+
+  // ---------- drawing ----------
+  function resize() {
+    const size = canvas.clientWidth;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = size * dpr;
+    canvas.height = size * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    draw();
+  }
+
+  function fitText(text, maxWidth, fontSize) {
+    ctx.font = `600 ${fontSize}px Inter, sans-serif`;
+    if (ctx.measureText(text).width <= maxWidth) return text;
+    let t = text;
+    while (t.length > 1 && ctx.measureText(t + '…').width > maxWidth) t = t.slice(0, -1);
+    return t + '…';
+  }
+
+  function draw() {
+    const size = canvas.clientWidth;
+    const c = size / 2;
+    const r = c - 8;
+    const names = getNames();
+    ctx.clearRect(0, 0, size, size);
+
+    // outer ring
+    ctx.beginPath();
+    ctx.arc(c, c, r + 4, 0, TAU);
+    ctx.fillStyle = '#d4a84b';
+    ctx.fill();
+
+    if (names.length === 0) {
+      ctx.beginPath();
+      ctx.arc(c, c, r, 0, TAU);
+      ctx.fillStyle = '#1b2a44';
+      ctx.fill();
+      ctx.fillStyle = '#9aa8c0';
+      ctx.font = `600 ${Math.max(14, size / 28)}px Inter, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('Add names to build the pack →', c, c + size * 0.18);
+      return;
+    }
+
+    const n = names.length;
+    const seg = TAU / n;
+    // palette length must not divide cleanly into wraparound clash
+    const colors = names.map((_, i) => {
+      let col = PALETTE[i % PALETTE.length];
+      if (i === n - 1 && n > 1 && PALETTE[(n - 1) % PALETTE.length] === PALETTE[0]) col = PALETTE[3];
+      return col;
+    });
+
+    const fontSize = Math.max(10, Math.min(22, (size / 22) * Math.min(1, 14 / n + 0.35)));
+
+    for (let i = 0; i < n; i++) {
+      const start = rotation + i * seg;
+      ctx.beginPath();
+      ctx.moveTo(c, c);
+      ctx.arc(c, c, r, start, start + seg);
+      ctx.closePath();
+      ctx.fillStyle = colors[i];
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(14,23,38,.55)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.save();
+      ctx.translate(c, c);
+      ctx.rotate(start + seg / 2);
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = LIGHT_SEGMENTS.has(colors[i]) ? '#1a1305' : '#f3f6fb';
+      const label = fitText(names[i], r * 0.68, fontSize);
+      ctx.fillText(label, r - 14, 0);
+      ctx.restore();
+    }
+
+    // pegs
+    for (let i = 0; i < n && n <= 60; i++) {
+      const a = rotation + i * seg;
+      ctx.beginPath();
+      ctx.arc(c + Math.cos(a) * (r - 3), c + Math.sin(a) * (r - 3), 3, 0, TAU);
+      ctx.fillStyle = '#f0cf7e';
+      ctx.fill();
+    }
+  }
+
+  // ---------- sound ----------
+  let audioCtx = null;
+  function audio() {
+    if (!audioCtx) {
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch { audioCtx = null; }
+    }
+    return audioCtx;
+  }
+  function tick() {
+    if (!soundEl.checked) return;
+    const a = audio(); if (!a) return;
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = 'triangle'; o.frequency.value = 1400;
+    g.gain.setValueAtTime(0.08, a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + 0.04);
+    o.connect(g).connect(a.destination);
+    o.start(); o.stop(a.currentTime + 0.05);
+  }
+  function howl() {
+    if (!soundEl.checked) return;
+    const a = audio(); if (!a) return;
+    const t = a.currentTime;
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(320, t);
+    o.frequency.linearRampToValueAtTime(620, t + 0.5);
+    o.frequency.linearRampToValueAtTime(560, t + 1.3);
+    o.frequency.linearRampToValueAtTime(380, t + 1.9);
+    const f = a.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1200;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.12, t + 0.3);
+    g.gain.linearRampToValueAtTime(0.1, t + 1.4);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 2);
+    o.connect(f).connect(g).connect(a.destination);
+    o.start(t); o.stop(t + 2.05);
+  }
+
+  // ---------- spin ----------
+  function randInt(max) {
+    if (window.crypto && crypto.getRandomValues) {
+      const buf = new Uint32Array(1);
+      const limit = Math.floor(0xFFFFFFFF / max) * max;
+      do { crypto.getRandomValues(buf); } while (buf[0] >= limit);
+      return buf[0] % max;
+    }
+    return Math.floor(Math.random() * max);
+  }
+
+  function indexAtPointer(n) {
+    const seg = TAU / n;
+    const a = (((-Math.PI / 2 - rotation) % TAU) + TAU) % TAU;
+    return Math.floor(a / seg) % n;
+  }
+
+  function spin() {
+    const names = getNames();
+    if (spinning) return;
+    if (names.length < 2) {
+      alert('Add at least two names to spin the wheel.');
+      return;
+    }
+    audio(); // unlock audio on user gesture
+    spinning = true;
+    spinBtn.disabled = true;
+    namesEl.disabled = true;
+
+    const n = names.length;
+    const seg = TAU / n;
+    const idx = randInt(n);
+    const jitter = 0.15 + Math.random() * 0.7; // land inside the segment, not on a line
+    const base = -Math.PI / 2 - (idx + jitter) * seg;
+    const turns = 6 + randInt(3);
+    let target = base;
+    while (target > rotation) target -= TAU; // normalise below current
+    while (target < rotation + turns * TAU) target += TAU;
+
+    const startRot = rotation;
+    const delta = target - startRot;
+    const duration = 5200 + randInt(1200);
+    const t0 = performance.now();
+    let lastIdx = indexAtPointer(n);
+
+    function frame(now) {
+      const p = Math.min(1, (now - t0) / duration);
+      const eased = 1 - Math.pow(1 - p, 4);
+      rotation = startRot + delta * eased;
+      draw();
+      const cur = indexAtPointer(n);
+      if (cur !== lastIdx) { tick(); lastIdx = cur; }
+      if (p < 1) requestAnimationFrame(frame);
+      else finish(names[idx]);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function finish(name) {
+    rotation = ((rotation % TAU) + TAU) % TAU;
+    pendingWinner = name;
+    winners.unshift({ name, when: new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) });
+    store.set(STORE_WINNERS, JSON.stringify(winners));
+    renderWinners();
+    winnerNameEl.textContent = name;
+    overlay.classList.add('show');
+    howl();
+    confetti();
+  }
+
+  function closeWinner() {
+    overlay.classList.remove('show');
+    stopConfetti();
+    if (pendingWinner && removeWinnerEl.checked) {
+      const lines = namesEl.value.split('\n');
+      const i = lines.findIndex(l => l.trim() === pendingWinner);
+      if (i > -1) lines.splice(i, 1);
+      namesEl.value = lines.join('\n');
+      onNamesChange();
+    }
+    pendingWinner = null;
+    spinning = false;
+    spinBtn.disabled = false;
+    namesEl.disabled = false;
+  }
+
+  // ---------- winners ----------
+  function renderWinners() {
+    if (!winners.length) {
+      winnersBox.innerHTML = '<p class="empty">No winners yet.</p>';
+      return;
+    }
+    const ol = document.createElement('ol');
+    ol.className = 'winners';
+    winners.forEach(w => {
+      const li = document.createElement('li');
+      li.textContent = w.name;
+      const s = document.createElement('span');
+      s.textContent = w.when;
+      li.appendChild(s);
+      ol.appendChild(li);
+    });
+    winnersBox.innerHTML = '';
+    winnersBox.appendChild(ol);
+  }
+
+  // ---------- confetti ----------
+  const cc = document.getElementById('confetti');
+  const cctx = cc.getContext('2d');
+  let pieces = [], confettiRAF = null;
+  function confetti() {
+    cc.width = innerWidth; cc.height = innerHeight;
+    const cols = ['#f0cf7e', '#d4a84b', '#ffffff', '#6f93cf', '#e2bd66'];
+    pieces = Array.from({ length: 180 }, () => ({
+      x: Math.random() * cc.width,
+      y: -20 - Math.random() * cc.height * 0.5,
+      w: 6 + Math.random() * 6, h: 8 + Math.random() * 8,
+      vy: 2 + Math.random() * 3.5, vx: -1.5 + Math.random() * 3,
+      rot: Math.random() * TAU, vr: -0.2 + Math.random() * 0.4,
+      col: cols[randInt(cols.length)]
+    }));
+    const step = () => {
+      cctx.clearRect(0, 0, cc.width, cc.height);
+      pieces.forEach(p => {
+        p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+        if (p.y > cc.height + 20) { p.y = -20; p.x = Math.random() * cc.width; }
+        cctx.save(); cctx.translate(p.x, p.y); cctx.rotate(p.rot);
+        cctx.fillStyle = p.col; cctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        cctx.restore();
+      });
+      confettiRAF = requestAnimationFrame(step);
+    };
+    stopConfetti(); step();
+  }
+  function stopConfetti() {
+    if (confettiRAF) cancelAnimationFrame(confettiRAF);
+    confettiRAF = null;
+    cctx.clearRect(0, 0, cc.width, cc.height);
+  }
+
+  // ---------- events ----------
+  function onNamesChange() {
+    const n = getNames().length;
+    countEl.textContent = `${n} ${n === 1 ? 'wolf' : 'wolves'}`;
+    store.set(STORE_NAMES, namesEl.value);
+    draw();
+  }
+
+  namesEl.addEventListener('input', onNamesChange);
+  spinBtn.addEventListener('click', spin);
+  hub.addEventListener('click', spin);
+  document.getElementById('closeBtn').addEventListener('click', closeWinner);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeWinner(); });
+
+  document.getElementById('shuffleBtn').addEventListener('click', () => {
+    if (spinning) return;
+    const arr = getNames();
+    for (let i = arr.length - 1; i > 0; i--) { const j = randInt(i + 1); [arr[i], arr[j]] = [arr[j], arr[i]]; }
+    namesEl.value = arr.join('\n');
+    onNamesChange();
+  });
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    if (spinning) return;
+    if (namesEl.value && !confirm('Clear all names from the wheel?')) return;
+    namesEl.value = '';
+    onNamesChange();
+  });
+  document.getElementById('clearWinnersBtn').addEventListener('click', () => {
+    if (winners.length && !confirm('Clear the Hall of Wolves history?')) return;
+    winners = [];
+    store.set(STORE_WINNERS, '[]');
+    renderWinners();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (document.activeElement === namesEl) return;
+    if (e.code === 'Space') {
+      e.preventDefault();
+      if (overlay.classList.contains('show')) closeWinner(); else spin();
+    } else if (e.key === 'Escape' && overlay.classList.contains('show')) {
+      closeWinner();
+    } else if (e.key === 'f' || e.key === 'F') {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+      else document.exitFullscreen?.();
+    }
+  });
+
+  window.addEventListener('resize', resize);
+
+  // ---------- init ----------
+  const savedNames = store.get(STORE_NAMES);
+  namesEl.value = savedNames !== null ? savedNames :
+    ['Amara', 'Luca', 'Priya', 'Kenji', 'Sofia', 'Omar', 'Chen', 'Fatima', 'Mateo', 'Ingrid'].join('\n');
+  try { winners = JSON.parse(store.get(STORE_WINNERS) || '[]') || []; } catch { winners = []; }
+  renderWinners();
+  onNamesChange();
+  resize();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+})();
+</script>
+</body>
+</html>
