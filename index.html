@@ -5,17 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Wolf of the Class</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0e1726;
-    --bg2: #16233a;
-    --panel: #1b2a44;
-    --gold: #d4a84b;
-    --gold-light: #f0cf7e;
-    --text: #eef2f8;
-    --muted: #9aa8c0;
-    --border: #2c3f60;
+    --bg: #f3f5f8;
+    --panel: #ffffff;
+    --navy: #0f2744;
+    --accent: #1d4f91;
+    --accent-dark: #163d70;
+    --teal: #0e7c7b;
+    --text: #1b2a3d;
+    --muted: #5b6b80;
+    --border: #dbe2ea;
   }
   * { box-sizing: border-box; }
   body {
@@ -23,30 +24,29 @@
     min-height: 100vh;
     font-family: 'Inter', system-ui, sans-serif;
     color: var(--text);
-    background: radial-gradient(ellipse at top, var(--bg2), var(--bg) 70%);
+    background: var(--bg);
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 24px 16px 40px;
+    padding: 28px 16px 40px;
   }
-  header { text-align: center; margin-bottom: 16px; }
-  header .wolf { font-size: 44px; line-height: 1; }
+  header { text-align: center; margin-bottom: 20px; }
+  .eyebrow {
+    font-size: 12px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--teal); margin: 0;
+  }
   h1 {
     font-family: 'Playfair Display', serif;
-    font-weight: 900;
-    font-size: clamp(30px, 6vw, 56px);
-    margin: 6px 0 4px;
-    background: linear-gradient(180deg, var(--gold-light), var(--gold));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    letter-spacing: 0.5px;
+    font-weight: 700;
+    font-size: clamp(30px, 6vw, 52px);
+    margin: 6px 0 6px;
+    color: var(--navy);
   }
-  header p { margin: 0; color: var(--muted); font-size: 15px; }
+  header p.tag { margin: 0; color: var(--muted); font-size: 15px; }
 
   main {
     display: flex;
-    gap: 28px;
+    gap: 32px;
     align-items: flex-start;
     justify-content: center;
     flex-wrap: wrap;
@@ -55,53 +55,58 @@
   }
   .wheel-area { display: flex; flex-direction: column; align-items: center; gap: 18px; }
   .wheel-wrap { position: relative; width: min(560px, 92vw); aspect-ratio: 1; }
-  canvas { width: 100%; height: 100%; display: block; filter: drop-shadow(0 12px 30px rgba(0,0,0,.5)); }
+  canvas { width: 100%; height: 100%; display: block; filter: drop-shadow(0 10px 24px rgba(15,39,68,.18)); }
   .pointer {
-    position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
+    position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
     width: 0; height: 0;
-    border-left: 20px solid transparent; border-right: 20px solid transparent;
-    border-top: 38px solid var(--gold-light);
-    filter: drop-shadow(0 3px 4px rgba(0,0,0,.6));
+    border-left: 18px solid transparent; border-right: 18px solid transparent;
+    border-top: 34px solid var(--teal);
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,.25));
     z-index: 2;
   }
   .hub {
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    width: 18%; aspect-ratio: 1; border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, #2a3d5f, #0e1726);
-    border: 4px solid var(--gold);
+    width: 17%; aspect-ratio: 1; border-radius: 50%;
+    background: #ffffff;
+    border: 4px solid var(--navy);
     display: flex; align-items: center; justify-content: center;
-    font-size: clamp(26px, 5vw, 46px);
-    box-shadow: 0 4px 14px rgba(0,0,0,.6);
+    font-weight: 700; letter-spacing: 2px; color: var(--navy);
+    font-size: clamp(11px, 2.2vw, 16px);
+    box-shadow: 0 4px 12px rgba(15,39,68,.25);
     cursor: pointer; user-select: none;
   }
   button {
-    font-family: inherit; cursor: pointer; border-radius: 10px; border: 1px solid var(--border);
-    background: var(--panel); color: var(--text); padding: 9px 14px; font-size: 14px;
+    font-family: inherit; cursor: pointer; border-radius: 8px; border: 1px solid var(--border);
+    background: #fff; color: var(--text); padding: 8px 14px; font-size: 14px;
   }
-  button:hover:not(:disabled) { border-color: var(--gold); }
+  button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
   button:disabled { opacity: .5; cursor: not-allowed; }
   .spin-btn {
-    font-family: 'Playfair Display', serif; font-weight: 700; font-size: 24px;
-    padding: 14px 48px; border: none; color: #1a1305;
-    background: linear-gradient(180deg, var(--gold-light), var(--gold));
-    box-shadow: 0 6px 20px rgba(212,168,75,.35);
+    font-weight: 600; font-size: 18px; letter-spacing: .5px;
+    padding: 13px 52px; border: none; color: #fff;
+    background: var(--accent);
+    box-shadow: 0 6px 16px rgba(29,79,145,.28);
   }
+  .spin-btn:hover:not(:disabled) { background: var(--accent-dark); color: #fff; }
   .hint { color: var(--muted); font-size: 13px; margin: 0; }
 
   .panel {
-    background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
     padding: 18px; width: min(340px, 92vw);
+    box-shadow: 0 1px 3px rgba(15,39,68,.06);
   }
-  .panel h2 { font-size: 16px; margin: 0 0 8px; color: var(--gold-light); }
+  .panel h2 { font-size: 15px; margin: 0 0 10px; color: var(--navy); }
   .panel + .panel { margin-top: 16px; }
   textarea {
-    width: 100%; height: 220px; resize: vertical; border-radius: 10px;
-    border: 1px solid var(--border); background: var(--bg); color: var(--text);
+    width: 100%; height: 220px; resize: vertical; border-radius: 8px;
+    border: 1px solid var(--border); background: #f9fafc; color: var(--text);
     padding: 10px; font-family: inherit; font-size: 14px; line-height: 1.5;
   }
+  textarea:focus { outline: 2px solid rgba(29,79,145,.25); border-color: var(--accent); }
   .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
   .count { color: var(--muted); font-size: 13px; margin-left: auto; }
   label.check { display: flex; gap: 8px; align-items: center; font-size: 14px; margin-top: 10px; color: var(--muted); }
+  label.check input { accent-color: var(--accent); }
   ol.winners { margin: 0; padding-left: 20px; font-size: 14px; max-height: 180px; overflow-y: auto; }
   ol.winners li { padding: 3px 0; }
   ol.winners li span { color: var(--muted); font-size: 12px; margin-left: 6px; }
@@ -109,24 +114,24 @@
 
   /* Winner overlay */
   .overlay {
-    position: fixed; inset: 0; background: rgba(5,10,20,.82);
+    position: fixed; inset: 0; background: rgba(15,39,68,.55);
     display: none; align-items: center; justify-content: center; z-index: 10; padding: 16px;
   }
   .overlay.show { display: flex; }
   .card {
-    text-align: center; background: linear-gradient(180deg, #1f3050, #121d31);
-    border: 2px solid var(--gold); border-radius: 20px; padding: 36px 32px;
-    max-width: 560px; width: 100%; animation: pop .45s cubic-bezier(.2,1.4,.4,1);
+    text-align: center; background: #ffffff;
+    border-top: 6px solid var(--teal); border-radius: 16px; padding: 40px 32px 34px;
+    max-width: 560px; width: 100%; animation: pop .45s cubic-bezier(.2,1.3,.4,1);
+    box-shadow: 0 24px 60px rgba(15,39,68,.35);
     position: relative; z-index: 12;
   }
-  @keyframes pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-  .card .big { font-size: 64px; }
-  .card .label { color: var(--muted); text-transform: uppercase; letter-spacing: 3px; font-size: 13px; margin-top: 8px; }
+  @keyframes pop { from { transform: scale(.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .card .label { color: var(--teal); text-transform: uppercase; letter-spacing: 3px; font-size: 13px; font-weight: 600; }
   .card .name {
-    font-family: 'Playfair Display', serif; font-weight: 900;
-    font-size: clamp(32px, 8vw, 60px); color: var(--gold-light); margin: 10px 0 6px; word-break: break-word;
+    font-family: 'Playfair Display', serif; font-weight: 700;
+    font-size: clamp(34px, 8vw, 60px); color: var(--navy); margin: 12px 0 8px; word-break: break-word;
   }
-  .card .sub { color: var(--text); margin: 0 0 22px; }
+  .card .sub { color: var(--muted); margin: 0 0 26px; font-size: 16px; }
   #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 11; }
   footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: center; }
 </style>
@@ -134,9 +139,9 @@
 <body>
 
 <header>
-  <div class="wolf" aria-hidden="true">🐺</div>
+  <p class="eyebrow">Corporate Finance · End-of-Class Draw</p>
   <h1>The Wolf of the Class</h1>
-  <p>Stayed until the end? You're in the pack. One lucky wolf takes home the prize.</p>
+  <p class="tag">Stayed until the end? You're in the draw. One committed student takes home the prize.</p>
 </header>
 
 <main>
@@ -144,7 +149,7 @@
     <div class="wheel-wrap">
       <div class="pointer"></div>
       <canvas id="wheel"></canvas>
-      <div class="hub" id="hub" title="Spin">🐺</div>
+      <div class="hub" id="hub" title="Spin">SPIN</div>
     </div>
     <button class="spin-btn" id="spinBtn">Spin</button>
     <p class="hint">Press <strong>Space</strong> to spin · <strong>F</strong> for full screen</p>
@@ -152,19 +157,19 @@
 
   <aside>
     <div class="panel">
-      <h2>Tonight's pack</h2>
+      <h2>Students in the draw</h2>
       <textarea id="names" spellcheck="false" placeholder="Paste student names here, one per line"></textarea>
       <div class="row">
         <button id="shuffleBtn">Shuffle</button>
         <button id="clearBtn">Clear</button>
-        <span class="count" id="count">0 wolves</span>
+        <span class="count" id="count">0 students</span>
       </div>
       <label class="check"><input type="checkbox" id="removeWinner" checked> Remove winner from the wheel after each spin</label>
       <label class="check"><input type="checkbox" id="sound" checked> Sound</label>
     </div>
 
     <div class="panel">
-      <h2>Hall of Wolves</h2>
+      <h2>Past winners</h2>
       <div id="winnersBox"><p class="empty">No winners yet.</p></div>
       <div class="row">
         <button id="clearWinnersBtn">Clear history</button>
@@ -175,11 +180,10 @@
 
 <div class="overlay" id="overlay">
   <div class="card">
-    <div class="big">🐺</div>
-    <div class="label">Tonight's Wolf of the Class</div>
+    <div class="label">Today's Wolf of the Class</div>
     <div class="name" id="winnerName"></div>
-    <p class="sub">Commitment pays off. Come collect your prize!</p>
-    <button class="spin-btn" id="closeBtn">Awooo! 🎉</button>
+    <p class="sub">Commitment pays off. Congratulations, come collect your prize!</p>
+    <button class="spin-btn" id="closeBtn">Continue</button>
   </div>
 </div>
 <canvas id="confetti"></canvas>
@@ -188,8 +192,8 @@
 
 <script>
 (() => {
-  const PALETTE = ['#1f3a63', '#d4a84b', '#2f4f7f', '#b98a2e', '#27446f', '#e2bd66', '#3a5a8c', '#c7983c'];
-  const LIGHT_SEGMENTS = new Set(['#d4a84b', '#b98a2e', '#e2bd66', '#c7983c']);
+  const PALETTE = ['#0f2744', '#d7e2ef', '#1d4f91', '#eef2f7', '#0e7c7b', '#d7e2ef', '#35608f', '#eef2f7'];
+  const LIGHT_SEGMENTS = new Set(['#d7e2ef', '#eef2f7']);
   const STORE_NAMES = 'wolfOfClass.names';
   const STORE_WINNERS = 'wolfOfClass.winners';
   const TAU = Math.PI * 2;
@@ -249,18 +253,18 @@
     // outer ring
     ctx.beginPath();
     ctx.arc(c, c, r + 4, 0, TAU);
-    ctx.fillStyle = '#d4a84b';
+    ctx.fillStyle = '#0f2744';
     ctx.fill();
 
     if (names.length === 0) {
       ctx.beginPath();
       ctx.arc(c, c, r, 0, TAU);
-      ctx.fillStyle = '#1b2a44';
+      ctx.fillStyle = '#eef2f7';
       ctx.fill();
-      ctx.fillStyle = '#9aa8c0';
+      ctx.fillStyle = '#5b6b80';
       ctx.font = `600 ${Math.max(14, size / 28)}px Inter, sans-serif`;
       ctx.textAlign = 'center';
-      ctx.fillText('Add names to build the pack →', c, c + size * 0.18);
+      ctx.fillText('Add student names to begin →', c, c + size * 0.18);
       return;
     }
 
@@ -269,7 +273,7 @@
     // palette length must not divide cleanly into wraparound clash
     const colors = names.map((_, i) => {
       let col = PALETTE[i % PALETTE.length];
-      if (i === n - 1 && n > 1 && PALETTE[(n - 1) % PALETTE.length] === PALETTE[0]) col = PALETTE[3];
+      if (i === n - 1 && n > 1 && (n - 1) % PALETTE.length === 0) col = PALETTE[2];
       return col;
     });
 
@@ -283,7 +287,7 @@
       ctx.closePath();
       ctx.fillStyle = colors[i];
       ctx.fill();
-      ctx.strokeStyle = 'rgba(14,23,38,.55)';
+      ctx.strokeStyle = 'rgba(15,39,68,.25)';
       ctx.lineWidth = 1.5;
       ctx.stroke();
 
@@ -292,7 +296,7 @@
       ctx.rotate(start + seg / 2);
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = LIGHT_SEGMENTS.has(colors[i]) ? '#1a1305' : '#f3f6fb';
+      ctx.fillStyle = LIGHT_SEGMENTS.has(colors[i]) ? '#0f2744' : '#ffffff';
       const label = fitText(names[i], r * 0.68, fontSize);
       ctx.fillText(label, r - 14, 0);
       ctx.restore();
@@ -303,7 +307,7 @@
       const a = rotation + i * seg;
       ctx.beginPath();
       ctx.arc(c + Math.cos(a) * (r - 3), c + Math.sin(a) * (r - 3), 3, 0, TAU);
-      ctx.fillStyle = '#f0cf7e';
+      ctx.fillStyle = '#ffffff';
       ctx.fill();
     }
   }
@@ -321,28 +325,49 @@
     const a = audio(); if (!a) return;
     const o = a.createOscillator(), g = a.createGain();
     o.type = 'triangle'; o.frequency.value = 1400;
-    g.gain.setValueAtTime(0.08, a.currentTime);
+    g.gain.setValueAtTime(0.05, a.currentTime);
     g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + 0.04);
     o.connect(g).connect(a.destination);
     o.start(); o.stop(a.currentTime + 0.05);
   }
-  function howl() {
+  function celebrate() {
     if (!soundEl.checked) return;
     const a = audio(); if (!a) return;
     const t = a.currentTime;
-    const o = a.createOscillator(), g = a.createGain();
-    o.type = 'sawtooth';
-    o.frequency.setValueAtTime(320, t);
-    o.frequency.linearRampToValueAtTime(620, t + 0.5);
-    o.frequency.linearRampToValueAtTime(560, t + 1.3);
-    o.frequency.linearRampToValueAtTime(380, t + 1.9);
-    const f = a.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1200;
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(0.12, t + 0.3);
-    g.gain.linearRampToValueAtTime(0.1, t + 1.4);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 2);
-    o.connect(f).connect(g).connect(a.destination);
-    o.start(t); o.stop(t + 2.05);
+    const master = a.createGain(); master.gain.value = 0.5; master.connect(a.destination);
+    // bright bell-like fanfare: C5 E5 G5 then a C major chord
+    const bell = (freq, start, dur, vol) => {
+      [1, 2, 3].forEach((h, k) => {
+        const o = a.createOscillator(), g = a.createGain();
+        o.type = 'sine'; o.frequency.value = freq * h;
+        const v = vol / (k * 2.5 + 1);
+        g.gain.setValueAtTime(0.0001, t + start);
+        g.gain.exponentialRampToValueAtTime(v, t + start + 0.015);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + start + dur);
+        o.connect(g).connect(master);
+        o.start(t + start); o.stop(t + start + dur + 0.05);
+      });
+    };
+    bell(523.25, 0.00, 0.35, 0.22);
+    bell(659.25, 0.12, 0.35, 0.22);
+    bell(783.99, 0.24, 0.35, 0.22);
+    [523.25, 659.25, 783.99, 1046.5].forEach(f => bell(f, 0.40, 1.6, 0.16));
+    // soft applause: many short filtered noise bursts
+    const len = Math.floor(a.sampleRate * 0.03);
+    const buf = a.createBuffer(1, len, a.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+    const bp = a.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2000; bp.Q.value = 0.8;
+    const ag = a.createGain(); ag.gain.value = 0.35;
+    bp.connect(ag).connect(master);
+    for (let i = 0; i < 140; i++) {
+      const st = 0.35 + Math.random() * 2.2;
+      const fade = st > 2.0 ? Math.max(0, 1 - (st - 2.0) / 0.6) : 1;
+      const src = a.createBufferSource(); src.buffer = buf;
+      const g = a.createGain(); g.gain.value = (0.4 + Math.random() * 0.6) * fade;
+      src.connect(g).connect(bp);
+      src.start(t + st);
+    }
   }
 
   // ---------- spin ----------
@@ -411,7 +436,7 @@
     renderWinners();
     winnerNameEl.textContent = name;
     overlay.classList.add('show');
-    howl();
+    celebrate();
     confetti();
   }
 
@@ -457,7 +482,7 @@
   let pieces = [], confettiRAF = null;
   function confetti() {
     cc.width = innerWidth; cc.height = innerHeight;
-    const cols = ['#f0cf7e', '#d4a84b', '#ffffff', '#6f93cf', '#e2bd66'];
+    const cols = ['#1d4f91', '#0e7c7b', '#f2b134', '#e4572e', '#6fa8dc', '#ffffff'];
     pieces = Array.from({ length: 180 }, () => ({
       x: Math.random() * cc.width,
       y: -20 - Math.random() * cc.height * 0.5,
@@ -488,7 +513,7 @@
   // ---------- events ----------
   function onNamesChange() {
     const n = getNames().length;
-    countEl.textContent = `${n} ${n === 1 ? 'wolf' : 'wolves'}`;
+    countEl.textContent = `${n} ${n === 1 ? 'student' : 'students'}`;
     store.set(STORE_NAMES, namesEl.value);
     draw();
   }
@@ -513,7 +538,7 @@
     onNamesChange();
   });
   document.getElementById('clearWinnersBtn').addEventListener('click', () => {
-    if (winners.length && !confirm('Clear the Hall of Wolves history?')) return;
+    if (winners.length && !confirm('Clear the past winners list?')) return;
     winners = [];
     store.set(STORE_WINNERS, '[]');
     renderWinners();
